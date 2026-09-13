@@ -1,7 +1,7 @@
 import {protectInput,localDecision,teacherCard} from './engine.js';
 
 export function parseSpokenNumber(text){
- const s=String(text).trim().replace(/[!？?。]$/, '').replace(/\.$/,'').replace(/^(답은|정답은|제 답은|내 답은)\s*/,'').replace(/\s*(이라고 생각해요|라고 생각해요|같아요|이에요|이요|예요|입니다|요)$/,'').replace(/\s/g,'');
+ const s=String(text).trim().replace(/[.!！？?。]+$/,'').replace(/^(답은|정답은|제 답은|내 답은)\s*/,'').replace(/\s*(맞죠|맞지|맞아요)$/,'').replace(/\s*(이라고 생각해요|라고 생각해요|같아요|이에요|이요|예요|입니다|이야|야|요)$/,'').replace(/\s/g,'');
  if(/^\d{1,3}$/.test(s))return Number(s);
  const native=['영','하나','둘','셋','넷','다섯','여섯','일곱','여덟','아홉','열','열하나','열둘','열셋','열넷','열다섯','열여섯','열일곱','열여덟','열아홉','스물'];
  if(native.includes(s))return native.indexOf(s);
@@ -28,6 +28,15 @@ export function dispatchText(lesson,text){
  const value=parseSpokenNumber(t);if(value!==null)return apply('check_answer',{problem_id,value});
  let kind;if(/전체 문제|원래 문제/.test(t))kind='main_question';else if(/그림|눈으로|보여/.test(t))kind='visual';else if(/모르|작은 단계|더 쉽게|천천히/.test(t))kind='small_step';else if(/힌트|도와|답.*알려|정답|답만/.test(t))kind='hint';
  return kind?apply('teaching_help',{problem_id,kind}):unchanged('NO_DETERMINISTIC_INTENT');
+}
+// Only engine-validated lesson outcomes become explicit remote speech.
+export function spokenFeedback(result){
+ if(!result.ok||result.end)return '';
+ const heard=Number.isInteger(result.heard_number)?`${result.heard_number}이라고 들었어. `:'';
+ if(result.result==='correct')return heard+'맞았어! 다음 문제도 해 볼까?';
+ if(result.result==='step_correct')return heard+'좋아! '+result.state.question;
+ if(['wrong','step_wrong'].includes(result.result))return heard+'조금 달라. 어떻게 생각했는지 말해 줄래?';
+ return result.suggested_coaching||result.feedback||(result.state.phase==='review'?result.state.explanation:result.state.question)||'';
 }
 export function sanitizeState(s){
  if(!s||typeof s!=='object'||!['solving','solved','review'].includes(s.phase))throw Error('Invalid lesson state');

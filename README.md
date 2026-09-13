@@ -1,8 +1,24 @@
 # 일타강사 조달봉 · Codex 구독 음성 산수 교실
 
-v0.3.0 · 성인 본인 테스트 · experimental Codex app-server 0.153.4
+v0.3.1 · 성인 본인 테스트 · experimental Codex app-server 0.153.4
 
 기본 화면은 PC에 설치된 **공식 Codex의 ChatGPT 로그인**을 사용합니다. 브라우저에 API 키나 OpenAI 토큰을 입력하지 않습니다. 구독 사용 한도가 적용되며 무제한 사용을 뜻하지 않습니다. 유료 API로 자동 전환하지 않습니다.
+
+## v0.3.1 · 짧은 숫자 답 무응답 수정
+
+실제 합성 입력 “십삼”으로 재현했습니다. 공식 v3가 `user transcript delta`에는 숫자를 보내지만 `done`은 보내지 않아, 기존 앱은 16초 관찰 동안 채점과 답변을 시작하지 못했습니다. 마이크나 모델 추론 속도 자체가 원인이라고 단정하지 않습니다.
+
+- 전체 전사가 명확한 숫자이고 **1.2초 동안 변하지 않을 때만** 임시로 처리합니다. 매 토큰을 채점하지 않으며, 이어지는 모호한 문장은 제외합니다.
+- 실제 계산 엔진으로 채점한 뒤 인식한 숫자·짧은 확인·다음 질문을 기존 `appendText` 문맥 경로로 전달합니다. 최종 전사가 같은 수면 재채점·중복 전송하지 않습니다. 수정된 최종 숫자는 같은 문제와 같은 수업 변경 순번일 때만 복구 후 재채점합니다. 늦은 전사로 새 문제를 채점하지 않습니다.
+- `13이야`, `십삼이야`, `13 맞죠?` 같은 명확한 답의 어미도 지원합니다. 여러 수·수식·소수는 추측하지 않습니다.
+- 완료 신호가 없는 상태에서 “네”로 다음 문제에 넘어갈 때 점수가 되돌아가던 문제, 문맥 전송 중 숫자 처리가 사라지는 문제를 독립 CLI 검토와 회귀 테스트로 보완했습니다.
+- polling 간격은 요청 시작 기준 최소 300ms로 제한해 기존 모바일 승인 게이트의 요청 한도를 유지합니다. 서버 RPC·인증·목소리는 바꾸지 않았습니다.
+
+**102개 자동 테스트 통과.** 실제 적용된 8778 서버에서 합성 입력 → 숫자 13 채점 → 원격 “13이라고 들었어. 맞았어! 다음 문제도 해 볼까?”를 확인했습니다. 마지막 유의미한 입력 PCM 샘플부터 첫 원격 음성까지 **2.88초**, 입력 WAV의 뒤쪽 무음까지 재생이 끝난 시점부터는 **2.08초**였습니다. 문맥 HTTP 1.6ms, 문맥 전송 시작부터 첫 음성 875ms. 단일 통제 실험 측정이지 모든 기기·회선의 보장값이 아닙니다.
+
+[비식별 검증 자료](evidence/numeric-answer-validation.json). 테스트 입력만 로컬 합성이고 출력은 실제 구독 원격 WebRTC입니다. 실험한 `appendSpeech`와 long-poll 서버 변경은 속도 이득이나 호환성 이점이 없어 **최종 적용에서 제외**했습니다. 기존 서버·기기 승인 게이트를 재시작하지 않고 호환되는 정적 UI만 대기 상태에서 갱신했습니다. 기존 승인과 접속 주소는 유지되며 열린 화면은 수업 종료 후 새로고침해야 새 코드를 받습니다.
+
+1.2초 안정화는 공식 발화 종료 신호가 아니라 제한된 추정입니다. 긴 문장 중간에 오래 쉬면 임시 판단될 수 있으며 “아니, 12라고 했어”로 정정할 수 있습니다. 실제 사람의 휴대폰 마이크·스피커는 별도 확인이 필요합니다. 이번 실제 세션 Stop 응답·자식 프로세스 종료·서버 idle은 확인했지만, 모든 서버 shutdown 경쟁 상황을 새로 검증했다는 뜻은 아닙니다.
 
 ## 실행
 
@@ -26,10 +42,10 @@ node server.mjs
 - **`thread/realtime/listVoices`**: `{}`. 공식 0.153.4의 v3는 **`voices.v1`** 목록을 사용합니다(v2가 아님). 기본 후보는 목록에 있는 `juniper`, 없으면 검증된 `defaultV1`입니다. 목록에는 이름만 있고 성별·따뜻함 메타데이터는 없습니다. 여성 선생님 말투는 prompt로 요청하지만 음색 성별을 보장하지 않습니다.
 - `thread/start`: ephemeral, read-only, approvalPolicy never, 환경 비움. OpenAI provider만 허용.
 - `thread/realtime/start`: `version: v3`, 선택한 `voice`, `outputModality: audio`, `clientManagedHandoffs: false`, `includeStartupContext: false`, WebRTC SDP와 수업 전용 prompt.
-- `thread/realtime/transcript/done`의 `role: user`만 앱의 결정적 명령/숫자 해석으로 전달합니다. 전사 delta나 선생님 말은 채점하지 않습니다. polling 순번으로 중복 실행을 차단합니다.
+- `thread/realtime/transcript/done`의 `role: user`만 앱의 결정적 명령/숫자 해석으로 전달합니다. 선생님 말은 채점하지 않습니다. v0.3.1은 완료 신호가 누락되는 짧은 숫자에 한해 위의 안정화·중복 방지 절차를 적용합니다. polling 순번으로 중복 실행을 차단합니다.
 - 수업 결과와 제한된 공개 상태는 공식 **`thread/realtime/appendText`**, `role: user`의 문맥 자료로 보냅니다. 가짜 provider 함수 호출, `response.create`, `appendSpeech`는 사용하지 않습니다.
 
-공식 참고: [Codex App Server](https://developers.openai.com/codex/app-server), [인증](https://developers.openai.com/codex/auth), [0.153.4 realtime core](https://github.com/openai/codex/blob/rust-v0.153.4/codex-rs/core/src/realtime_conversation.rs). `default_realtime_voice`와 `validate_realtime_voice`는 v3를 v1 목록에 매핑합니다. 실제 공식 클라이언트에서도 v3 + marin이 지원되지 않는다는 검증 오류를 확인했습니다. 프로토콜 버전 v3는 모델 이름이 아니며 모델 필드는 생략되어 서버 기본 모델을 사용합니다.
+공식 참고: [Codex App Server](https://developers.openai.com/codex/app-server), [인증](https://developers.openai.com/codex/auth), [0.153.4 realtime core](https://github.com/openai/codex/blob/rust-v0.153.4/codex-rs/core/src/realtime_conversation.rs). `default_realtime_voice`와 `validate_realtime_voice`는 v3를 v1 목록에 매핑합니다. 실제 공식 클라이언트에서도 v3 + marin이 지원되지 않는다는 검증 오류를 확인했습니다. 프로토콜 버전 v3는 모델 이름이 아니며 모델 필드는 생략됩니다. 설치된 공식 0.153.4 소스의 v3 기본값은 `gpt-live-1-codex`이며, 확인한 설정에는 realtime override가 없습니다. 설정의 `gpt-6-astra`는 별도 Codex 텍스트 모델입니다. 이 값은 소스·설정으로 해석한 기본 모델이며 서버가 활성 모델 ID를 회신한 증거와는 구분합니다.
 
 ## 기존 수업 기능
 
@@ -48,7 +64,7 @@ node server.mjs
 | 시도 후 풀이를 배우고 넘어갈래 | 함께 풀이 배우기, 직접 정답 수에 미포함 |
 | 그만할래 / 수업 끝 | 마이크와 서버 세션 종료 |
 
-기존 모델 함수 호출 방식과 달리 자연어 의도 해석은 제한된 한국어 규칙입니다. 숫자는 0~999의 명확한 숫자·일부 한국어 수사를 지원합니다. 여러 숫자나 모호한 문장은 임의로 채점하지 않습니다. 자유로운 표현 모두를 이해하거나 모델의 질문과 앱 질문이 항상 일치함을 보장하지 않습니다. 전사가 오지 않으면 칠판도 자동 진행하지 않습니다. 모델은 상태 갱신 전 먼저 말할 수 있고, 문제를 직접 풀어 정답을 노출하거나 잘못 설명할 수 있습니다. 앱의 숨겨진 답을 문맥에서 제외하는 것은 음성 답 노출 방지 보장이 아닙니다.
+기존 모델 함수 호출 방식과 달리 자연어 의도 해석은 제한된 한국어 규칙입니다. 숫자는 0~999의 명확한 숫자·일부 한국어 수사를 지원합니다. 여러 숫자나 모호한 문장은 임의로 채점하지 않습니다. 자유로운 표현 모두를 이해하거나 모델의 질문과 앱 질문이 항상 일치함을 보장하지 않습니다. 숫자 전사 자체가 오지 않으면 칠판도 자동 진행하지 않습니다. 모델은 상태 갱신 전 먼저 말할 수 있고, 문제를 직접 풀어 정답을 노출하거나 잘못 설명할 수 있습니다. 앱의 숨겨진 답을 문맥에서 제외하는 것은 음성 답 노출 방지 보장이 아닙니다.
 
 글 입력도 같은 결정적 수업 동작을 수행하고 `appendText`로 문맥을 추가합니다. **글 입력이 새 음성 응답을 유발한다는 보장은 없습니다.** 인식된 음성은 이미 OpenAI에 전달된 뒤이며, 이후 개인정보 패턴 차단이 최초 음성 전송을 취소하지는 않습니다.
 

@@ -1,4 +1,4 @@
-import {dispatchText,sanitizeState} from './subscription-lesson.js';
+import {dispatchText,sanitizeState,spokenFeedback,parseSpokenNumber} from './subscription-lesson.js';
 export function privateServiceURL(value){
  const url=new URL(value);if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash)throw Error('비공개 서비스의 HTTPS 주소만 입력해 주세요. 인증 정보·쿼리·#은 넣지 마세요.');return url.href;
 }
@@ -9,7 +9,7 @@ export async function apiRequest(name,data={},options={}){
 }
 export class SubscriptionTeacher{
  constructor({audio,lesson,onState=()=>{},onText=()=>{},onLesson=()=>{},onError=()=>{},request=apiRequest,getUserMedia=opts=>navigator.mediaDevices.getUserMedia(opts),Peer=globalThis.RTCPeerConnection}){
-  Object.assign(this,{audio,lesson,onState,onText,onLesson,onError,request,getUserMedia,Peer});this.generation=0;this.active=false;this.connecting=false;this.paused=false;this.cursor=0;this.text={};this.controllers=new Set();this.playbackBlocked=false;
+  Object.assign(this,{audio,lesson,onState,onText,onLesson,onError,request,getUserMedia,Peer});this.generation=0;this.mutationSerial=0;this.active=false;this.connecting=false;this.paused=false;this.cursor=0;this.text={};this.controllers=new Set();this.playbackBlocked=false;
  }
  async call(name,data={},keepalive=false){
   const controller=new AbortController();this.controllers.add(controller);const timer=setTimeout(()=>controller.abort(),name==='start'?55000:15000);
@@ -43,22 +43,39 @@ export class SubscriptionTeacher{
   }catch(e){if(gen===this.generation){await this.stop();this.onError(e.message);throw e;}}finally{clearTimeout(permissionTimer);}
  }
  async poll(gen){
-  try{while(this.active&&gen===this.generation){const r=await this.call('events',{sessionId:this.sessionId,after:this.cursor});for(const event of r.events){if(gen!==this.generation)return;await this.receive(event);}if(gen!==this.generation)return;await new Promise(r=>setTimeout(r,350));}}
+  try{while(this.active&&gen===this.generation){const at=Date.now();const r=await this.call('events',{sessionId:this.sessionId,after:this.cursor});for(const event of r.events){if(gen!==this.generation)return;await this.receive(event);}if(!this.active||gen!==this.generation)return;const gap=300-(Date.now()-at);if(gap>0)await new Promise(r=>setTimeout(r,gap));}}
   catch{if(gen===this.generation)await this.stop('서버 이벤트 연결이 끊겼어요.');}
  }
  async receive(event){
   if(!this.active||event.id<=this.cursor)return;this.cursor=event.id;const {type,data}=event;
   if(!['user','assistant'].includes(data?.role))return;const role=data.role;
-  if(type==='thread/realtime/transcript/delta'){this.text[role]=((this.text[role]||'')+(data.delta||'')).slice(0,1500);this.onText(role==='assistant'?'teacher':'user',this.text[role]);if(role==='assistant'&&!this.paused)this.onState('speaking');return;}
+  if(type==='thread/realtime/transcript/delta'){this.text[role]=((this.text[role]||'')+(data.delta||'')).slice(0,1500);this.onText(role==='assistant'?'teacher':'user',this.text[role]);if(role==='assistant'&&!this.paused)this.onState('speaking');if(role==='user')this.settleNumeric();return;}
   if(type!=='thread/realtime/transcript/done')return;this.text[role]='';this.onText(role==='assistant'?'teacher':'user',String(data.text||'').slice(0,1500));
+  if(role==='user'){
+   clearTimeout(this.numericTimer);
+   const provisional=this.provisional;this.provisional=null;
+   if(provisional&&parseSpokenNumber(data.text)===provisional.value)return;
+   if(provisional&&!this.paused&&(parseSpokenNumber(data.text)!==null||String(data.text).trim().startsWith(provisional.text))){await this.dispatch(data.text,provisional);return;}
+  }
   if(role==='user'&&!this.paused){this.lastTurn=Date.now();await this.dispatch(data.text);}else if(!this.paused)this.onState('listening');
  }
- dispatch(text){
+ // V3 may stream a whole short answer without completing its transcript part.
+ // A bounded, unchanged *whole numeric* candidate is provisional, never a delta token.
+ settleNumeric(){
+  clearTimeout(this.numericTimer);const text=this.text.user,value=parseSpokenNumber(text),gen=this.generation;
+  if(value===null||this.provisional||this.paused)return;
+  this.numericTimer=setTimeout(()=>{
+   if(!this.active||this.paused||gen!==this.generation||this.text.user!==text)return;
+   if(this.dispatchQueue?.running||this.dispatchQueue?.items.length){this.settleNumeric();return;}
+   this.provisional={value,text,afterRevision:this.mutationSerial+1,problemId:this.lesson.id,snapshot:Object.fromEntries(Object.entries(this.lesson).map(([key,value])=>[key,typeof value==='function'?value:structuredClone(value)]))};void this.dispatch(text);
+  },1200);
+ }
+ dispatch(text,restore=null){
   if(!this.active||this.paused)return Promise.resolve(false);
   const queue=this.dispatchQueue??=( {generation:this.generation,items:[],running:null} );
   // Bound all outstanding inputs, including the context request in flight.
   if(queue.items.length+(queue.running?1:0)>=8){this.onError('입력이 밀려 있어요. 잠시 후 다시 말해 주세요.');return Promise.resolve(false);}
-  return new Promise(resolve=>{queue.items.push({text:String(text??'').slice(0,1500),resolve});if(!queue.running)void this.drainDispatch(queue);});
+  return new Promise(resolve=>{queue.items.push({text:String(text??'').slice(0,1500),restore,resolve});if(!queue.running)void this.drainDispatch(queue);});
  }
  async drainDispatch(queue){
   const current=()=>this.active&&queue.generation===this.generation&&this.dispatchQueue===queue;
@@ -66,12 +83,14 @@ export class SubscriptionTeacher{
    const item=queue.items.shift();queue.running=item;let snapshot;
    try{
     if(this.paused){item.resolve(false);continue;}
+    if(item.restore&&(item.restore.problemId!==this.lesson.id||item.restore.afterRevision!==this.mutationSerial)){item.resolve(false);continue;}
+    if(item.restore?.snapshot)Object.assign(this.lesson,item.restore.snapshot);
     // Preserve nested progress and correction history as well as the visible board.
     snapshot=Object.fromEntries(Object.entries(this.lesson).map(([key,value])=>[key,typeof value==='function'?value:structuredClone(value)]));
-    this.lastTurn=Date.now();const result=dispatchText(this.lesson,item.text);this.onLesson(result);
+    this.lastTurn=Date.now();const result=dispatchText(this.lesson,item.text);if(result.ok)this.mutationSerial++;this.onLesson(result);
     if(!current()){item.resolve(false);return;}
     if(result.end){await this.stop('오늘 수업은 여기까지!');item.resolve(false);return;}
-    if(result.error!=='PRIVATE_INPUT')await this.call('context',{sessionId:this.sessionId,state:sanitizeState(result.state),text:item.text,feedback:result.feedback||result.suggested_coaching||result.error||result.result||''});
+    if(result.error!=='PRIVATE_INPUT')await this.call('context',{sessionId:this.sessionId,state:sanitizeState(result.state),text:item.text,feedback:spokenFeedback(result)||result.feedback||result.suggested_coaching||result.error||result.result||''});
     item.resolve(current());
    }catch(e){
     if(current()){
@@ -99,6 +118,7 @@ export class SubscriptionTeacher{
   void cleanup.then(clear,clear);void this.finishStop(message,unload).then(resolve,reject);return cleanup;
  }
  async finishStop(message='',unload=false){
+  clearTimeout(this.numericTimer);this.provisional=null;
   const sessionId=this.sessionId;this.sessionId=null;this.generation++;this.playbackBlocked=false;this.active=false;this.connecting=false;this.paused=false;clearInterval(this.beat);clearInterval(this.limit);
   // Detach before aborting: old requests may settle after a new lesson starts.
   const queue=this.dispatchQueue;this.dispatchQueue=null;

@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-13T04:33:41.914Z",
+  "release": "0.3.1",
+  "officialClient": "0.153.4",
+  "resolvedRealtimeDefault": "gpt-live-1-codex",
+  "modelEvidence": "matching official source default plus omitted model and no configured realtime override; not server-reported active model",
+  "voice": "juniper",
+  "input": "Windows Heami synthetic short numeric answer only",
+  "output": "genuine remote WebRTC receiver; no local output TTS or appendSpeech in chosen deployment",
+  "baseline": {
+    "recognizedNumericDelta": true,
+    "userDoneBeforeStop": false,
+    "graded": false,
+    "remoteAnswerAfterInput": false,
+    "observationFromInputStartMs": 16000,
+    "note": "original harness transport-pass flag was not numeric acceptance; recomputed from events/context/audio"
+  },
+  "deployed": {
+    "numericAcceptance": {
+      "recognized": true,
+      "graded": true,
+      "responded": true
+    },
+    "firstAudioAfterFileEndMs": 2084.2,
+    "firstAudioAfterVoicedEndMs": 2882.5,
+    "voicedEndDefinition": "last synthetic input PCM sample with absolute amplitude >500/32768",
+    "audioOnsetDefinition": "first remote receiver 20ms analyser sample with RMS >0.003 after input playback ends, after confirmed quiet greeting",
+    "contextAfterFileEndMs": 1209.0,
+    "contextHttpMs": 1.6,
+    "contextToFirstAudioMs": 875.2,
+    "remoteReplyAcknowledges13AndAsksNext": true,
+    "decodedAudio": {
+      "samples": 660960,
+      "sampleRate": 24000,
+      "peak": 13888,
+      "rms": 1204.7603997739934
+    },
+    "remoteWavSha256": "9b24030efd4faa32b5c37d4d2c048d8133b87b0f4e02c5a6d0ca140b9ff53b25",
+    "cleanup": {
+      "tracks": [
+        "ended"
+      ],
+      "peers": [
+        "closed"
+      ]
+    },
+    "healthAfter": {
+      "active": false,
+      "lastStop": {
+        "acknowledged": true,
+        "exited": true
+      }
+    }
+  },
+  "offlineTests": 102,
+  "review": {
+    "tool": "official Codex CLI read-only review",
+    "findings": 3,
+    "regressionTestsAddedAndFixed": 3,
+    "noFinalIndependentCleanReviewClaim": true
+  },
+  "deployment": {
+    "mode": "backward-compatible static update while idle",
+    "backendAndGateRestarted": false,
+    "backendPidRetained": 20880,
+    "gatePidRetained": 20756,
+    "approvedGateSessionsPreserved": true
+  },
+  "limits": [
+    "synthetic-input controlled test, not physical phone microphone verification",
+    "stable whole-number transcript inferred after 1200ms; not an official final-transcript guarantee",
+    "long pauses within a longer utterance can be provisionally interpreted; later supported revisions reconcile, correction remains available",
+    "single-run timings are not a universal SLA; another deployed trial autonomously answered sooner",
+    "server shutdown under load is not newly certified; actual session stop acknowledgement and process exit verified"
+  ]
+}
