@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {VoiceLesson,TOOLS,validTool,sessionConfig,LIVE_MODEL,instructions} from '../lesson.js';
-import {RealtimeTeacher} from '../realtime.js';
+import {RealtimeTeacher} from '../legacy-realtime.js';
 const mk=()=>new VoiceLesson();
 test('Realtime mini config: full duplex with auto turns and interruption, no separate transcription by default',()=>{const c=sessionConfig();assert.equal(c.model,LIVE_MODEL);assert.deepEqual(c.output_modalities,['audio']);assert.equal(c.audio.input.turn_detection.create_response,true);assert.equal(c.audio.input.turn_detection.interrupt_response,true);assert.equal(c.audio.input.turn_detection.eagerness,'medium');assert.ok(!c.audio.input.transcription);assert.equal(sessionConfig({captions:true}).audio.input.transcription.language,'ko');assert.throws(()=>sessionConfig({model:'gpt-realtime'}));});
 test('fresh state excludes final answer and explanation',()=>{const l=mk(),s=l.state();assert.equal(s.equation,'8 + 5 = ?');assert.ok(!Object.hasOwn(s,'answer'));assert.ok(!Object.hasOwn(s,'explanation'));assert.ok(!JSON.stringify(s).includes('13'));});

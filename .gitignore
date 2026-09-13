@@ -5,3 +5,10 @@ node_modules/
 __pycache__/
 .DS_Store
 *.log
+logs/
+audio/
+runtime/
+*.wav
+*.webm
+*.mp3
+*.m4a
