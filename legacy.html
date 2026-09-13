@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#172238"><meta name="referrer" content="no-referrer">
+<meta name="description" content="답보다 생각을 키우는 산수 수업. 일타강사 조달봉 AI 선생님 성인 개발 테스트.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://api.openai.com; img-src 'self' data:; media-src 'self' blob:; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'none'; upgrade-insecure-requests">
+<title>일타강사 조달봉 | 생각이 자라는 산수 교실</title>
+<link rel="stylesheet" href="./style.css"><link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<script type="module" src="./app.js"></script>
+</head>
+<body>
+<div class="app-shell">
+<header class="topbar"><a class="brand" href="./" aria-label="조달봉 산수 교실 처음으로"><span class="brand-mark">조</span><span><small>생각이 자라는 산수 교실</small><strong>일타강사 조달봉<span class="test-tag">LAB</span></strong></span></a><div class="top-actions"><button id="soundButton" class="icon-button" aria-label="선생님 음성 끄기" aria-pressed="true">♬</button><button id="settingsButton" class="settings-button">API 연결</button></div></header>
+<div class="status-strip"><span id="connectionStatus"><i></i>규칙 기반 미리보기 · GPT 미연결</span><span class="adult-badge">성인 테스트</span></div>
+<main>
+<section class="classroom" aria-label="산수 문제 풀기">
+<div class="lesson-toolbar"><div class="operation-tabs" role="group" aria-label="연산 선택"><button data-op="add" aria-pressed="true">덧셈</button><button data-op="sub" aria-pressed="false">뺄셈</button><button data-op="mul" aria-pressed="false">곱셈</button><button data-op="div" aria-pressed="false">나눗셈</button></div><label class="level-label"><span class="sr-only">난이도</span><select id="levelSelect"><option value="easy">기초</option><option value="challenge">도전</option></select></label></div>
+<div class="board" id="board">
+<div class="board-top"><span id="lessonLabel">LESSON 01 · 덧셈</span><span id="progressLabel">1 / 5 문제</span></div>
+<p class="board-invitation" id="boardInvitation">답을 찾는 길, 함께 만들어 볼까?</p>
+<div class="equation" aria-label="현재 문제"><span id="operandA">8</span><span id="operator">+</span><span id="operandB">5</span><span class="equals">=</span><span class="question-mark" id="equationResult">?</span></div>
+<div class="micro-panel" id="microPanel" hidden><span>한 번에 한 걸음</span><strong id="microQuestion"></strong><button id="backToMain">전체 문제로</button></div>
+<div class="board-bottom"><span class="board-note" id="boardNote">정답보다 네 생각이 궁금해!</span><button id="visualButton">◉ 생각 도구</button></div>
+</div>
+<div class="answer-row"><label for="answerInput" id="answerLabel">내가 찾은 답</label><input id="answerInput" type="text" inputmode="none" readonly autocomplete="off" placeholder="?" maxlength="3" aria-label="내 답, 아래 숫자판으로 입력"><button id="submitAnswer" class="primary">확인하기 <span>→</span></button><button id="nextProblem" class="primary" hidden>다음 문제 →</button></div>
+<div id="keypad" class="keypad" aria-label="숫자 입력"><button data-digit="1">1</button><button data-digit="2">2</button><button data-digit="3">3</button><button data-digit="4">4</button><button data-digit="5">5</button><button data-digit="6">6</button><button data-digit="7">7</button><button data-digit="8">8</button><button data-digit="9">9</button><button data-digit="clear" aria-label="입력 지우기">C</button><button data-digit="0">0</button><button data-digit="back" aria-label="한 글자 지우기">⌫</button></div>
+<div class="learning-trail"><span id="trailStars">✦ 생각 연습 중</span><button id="learnSolution">막혔어요 · 풀이 배우기</button></div>
+</section>
+<section class="teacher-panel" aria-label="AI 선생님과 대화">
+<div class="teacher-intro"><div class="mascot" aria-hidden="true"><i class="ear left"></i><i class="ear right"></i><div class="bear-head"><i class="brow left"></i><i class="brow right"></i><i class="eye left"></i><i class="eye right"></i><i class="glasses left"></i><i class="glasses right"></i><i class="bridge"></i><i class="nose"></i><i class="cheek left"></i><i class="cheek right"></i><i class="mouth"></i></div><div class="bear-body"><i class="tie"></i></div><span class="spark one">✦</span><span class="spark two">+</span></div><div><div class="teacher-label"><span class="live-dot"></span> YOUR MATH COACH</div><h1>“생각은 네가,<br>도움은 달봉쌤이.”</h1><p>혼내지 않고, 대신 풀어주지 않아요.</p></div></div>
+<div class="teacher-message" aria-live="polite"><div class="message-heading"><span id="cardTitle">오늘도 같이 한 걸음</span><button id="replayButton" aria-label="선생님 말 다시 듣기">▷</button></div><p id="teacherText">안녕! 일타강사 조달봉이야. 답보다 네 생각이 궁금해. 어떻게 시작해 볼까?</p><div class="message-meta"><span id="teacherSource">정해진 안내 · GPT 미연결</span><span id="hintDots">○ ○ ○</span></div></div>
+<div class="coach-actions"><button data-coach="hint">✦ 힌트 주세요</button><button data-coach="micro_step">↳ 작게 나눠요</button><button data-coach="ask_thinking">♡ 내 생각 말하기</button></div>
+<div class="conversation-box"><div class="last-message" id="lastMessage" hidden></div><form id="chatForm"><label for="chatInput" class="sr-only">선생님께 내 생각 말하기</label><input id="chatInput" type="text" maxlength="360" autocomplete="off" placeholder="“왜 더해야 해요?”" enterkeyhint="send"><button id="sendChat" type="submit" aria-label="생각 보내기">↑</button></form><button id="micButton" class="mic-button"><span class="mic-symbol">●</span><span id="micLabel">눌러서 생각 말하기</span><small>최대 12초</small></button><p class="mic-note" id="micNote">다시 누르면 녹음 종료 · 인식한 글을 확인한 뒤 보내요</p></div>
+<div class="teacher-footer"><span id="usageLabel">API 요청 0회</span><button id="endSession">종료 · 키 지우기</button></div>
+</section>
+</main>
+<footer class="page-footer"><span>JO DALBONG MATH LAB <b>v0.1.0</b></span><span>AI 교사 실험실 · 실제 사람이 아닌 AI 음성</span></footer>
+</div>
+<div id="toast" class="toast" role="status" hidden></div>
+<dialog id="settingsDialog" aria-labelledby="settingsTitle"><form method="dialog" class="modal-head"><span>JO DALBONG · TEST LAB</span><button aria-label="설정 닫기" value="cancel">×</button></form><h2 id="settingsTitle">달봉쌤에게<br><em>AI를 연결해 주세요.</em></h2><p class="modal-lead">별도 설치 없이, 본인 OpenAI API 키로 테스트해요.</p><label class="field-label" for="apiKeyInput">OPENAI API KEY</label><input id="apiKeyInput" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-…" maxlength="300"><div class="model-info"><span>생각 이해 <b>gpt-4.1-mini</b></span><span>듣기 <b>gpt-4o-mini-transcribe</b></span><span>말하기 <b>gpt-4o-mini-tts</b></span></div><p class="security-note">키는 이 탭의 메모리에만 보관하고 OpenAI에 직접 전송해요. GitHub·서버·브라우저 저장소에 저장하지 않아요. 브라우저 직접 키 입력은 <strong>본인 임시 테스트용</strong>이며 운영용 보안 구조가 아니에요.</p><label class="consent"><input id="consentCheck" type="checkbox"><span>성인인 내가 직접 테스트하며, 내 음성·입력 내용이 OpenAI에 전달되고 API 사용료가 발생함을 확인했어요.</span></label><div class="minor-note">어린이 실사용 전에는 별도 안전·개인정보 설계가 필요해요. 이 버전에 어린이 음성·이름·전화번호를 입력하지 마세요. <code>store:false</code>는 Zero Data Retention 승인을 대신하지 않아요.</div><p id="settingsError" class="inline-error" role="alert"></p><button id="connectButton" class="primary full">키 적용하고 수업 시작 →</button><button id="previewButton" class="ghost full">키 없이 화면 먼저 체험</button><details class="details"><summary>테스트 방식과 제한</summary><p>정답 채점은 앱이 하고, GPT는 제한된 지도 행동만 고릅니다. GPT가 만든 임의 문장은 표시하거나 읽지 않습니다. 풀기 전에는 최종 답을 주지 않지만, 중간 단계의 힌트는 제공합니다.</p><p>실시간 자유대화 모델이 아닌 음성인식 + 분류 + TTS 구조입니다. 마이크는 누를 때만 켜지고, 음성 인식 결과를 확인한 뒤 전송합니다. 녹음 원본은 인식을 위해 먼저 OpenAI에 전달됩니다.</p><p>앱은 개인정보를 저장하지 않습니다. API 제공자의 기본 보관정책은 별도이며 최대 30일 보관 등이 적용될 수 있습니다. 탭이 숨겨지면 녹음·재생을 중단합니다. 15분 미사용 시 키를 지웁니다. 세션 요청 120회 제한은 서버 비용 상한이 아닙니다.</p></details></dialog>
+<dialog id="visualDialog" aria-labelledby="visualTitle"><form method="dialog" class="modal-head"><span>THINK WITH YOUR HANDS</span><button aria-label="생각 도구 닫기">×</button></form><h2 id="visualTitle">눈으로 생각해요.</h2><p id="visualDescription"></p><div id="visualContent" class="visual-content"></div><div class="tool-actions"><button id="resetVisual">처음으로</button><button id="closeVisual" class="primary">다시 풀어 볼게요 →</button></div><p class="security-note">도구는 세는 과정을 도와줘요. 마지막 답은 직접 찾아 적어 보세요.</p></dialog>
+<dialog id="solutionDialog" aria-labelledby="solutionTitle"><form method="dialog" class="modal-head"><span>LEARN, NOT RUSH</span><button aria-label="풀이 선택 닫기">×</button></form><h2 id="solutionTitle">이번엔 풀이를<br>함께 배울까요?</h2><p>지금 문제는 <b>‘함께 배운 문제’</b>로 남기고 풀이를 보여줘요. ‘직접 푼 문제’ 수에는 넣지 않아요. 다음 비슷한 문제에서 다시 도전해요.</p><button id="confirmSolution" class="primary full">풀이 배우기로 전환</button><button id="cancelSolution" class="ghost full">조금 더 생각해 볼게요</button></dialog>
+<dialog id="summaryDialog" aria-labelledby="summaryTitle"><form method="dialog" class="modal-head"><span>EVERY LITTLE STEP COUNTS</span><button aria-label="오늘의 수업 닫기">×</button></form><span class="summary-star">✦</span><h2 id="summaryTitle">다섯 걸음,<br>잘 걸어왔어요!</h2><p id="summaryText"></p><p>빠르게 맞히는 것보다, 막혔을 때 다른 방법을 시도한 게 멋져요.</p><button id="restartLesson" class="primary full">새 수업 시작 →</button></dialog>
+</body></html>
