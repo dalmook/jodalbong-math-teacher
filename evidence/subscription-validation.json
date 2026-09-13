@@ -1,0 +1,115 @@
+{
+  "version": "0.3.0",
+  "verifiedAt": "2026-09-13T03:33:22.069Z",
+  "officialClient": "Codex 0.153.4",
+  "auth": "official-client-managed ChatGPT",
+  "protocol": "v3",
+  "voice": "juniper",
+  "voiceCatalogFamily": "v1",
+  "voiceGenderMetadataAvailable": false,
+  "voiceSubjectivelyAuditioned": false,
+  "syntheticInputOnly": true,
+  "realMicrophoneOpened": false,
+  "remoteAutonomousResponse": true,
+  "appendSpeechUsed": false,
+  "decodedRemoteAudio": {
+    "samples": 1045440,
+    "sampleRate": 24000,
+    "peak": 13014,
+    "rms": 1067.8073764513047
+  },
+  "remoteWavSha256": "c28be9d0ea4d2f695ee977b2ec0887c6636c396ca002548e51246ecadc897e8a",
+  "rtp": [
+    {
+      "type": "codec",
+      "mimeType": "audio/opus",
+      "clockRate": 48000
+    },
+    {
+      "type": "codec",
+      "mimeType": "audio/opus",
+      "clockRate": 48000
+    },
+    {
+      "type": "inbound-rtp",
+      "kind": "audio",
+      "packetsReceived": 2107,
+      "bytesReceived": 207466
+    },
+    {
+      "type": "outbound-rtp",
+      "kind": "audio",
+      "packetsSent": 2181,
+      "bytesSent": 85807
+    }
+  ],
+  "cleanup": {
+    "tracks": [
+      "ended"
+    ],
+    "peers": [
+      "closed"
+    ]
+  },
+  "serverStatusAfter": {
+    "active": false,
+    "lastStop": {
+      "acknowledged": true,
+      "exited": true
+    }
+  },
+  "lessonFeaturesObservedLive": [
+    "spoken switch to multiplication changed board",
+    "spoken uncertainty registered small-step question",
+    "contextual remote spoken hint without final answer"
+  ],
+  "unitTests": {
+    "passed": 92,
+    "failed": 0
+  },
+  "renderedWidths": [
+    {
+      "width": 360,
+      "scrollWidth": 360,
+      "voice": "juniper",
+      "keyInput": false,
+      "consent": false
+    },
+    {
+      "width": 390,
+      "scrollWidth": 390,
+      "voice": "juniper",
+      "keyInput": false,
+      "consent": false
+    },
+    {
+      "width": 430,
+      "scrollWidth": 430,
+      "voice": "juniper",
+      "keyInput": false,
+      "consent": false
+    },
+    {
+      "width": 1440,
+      "scrollWidth": 1440,
+      "voice": "juniper",
+      "keyInput": false,
+      "consent": false
+    }
+  ],
+  "consentGateNoMic": true,
+  "limitations": [
+    "Female/warm perception not verified by listening; catalog has names only",
+    "Physical microphone, phone browser and deployed authenticated proxy not tested",
+    "Static GitHub Pages cannot run Codex; PC/private Node backend must stay on",
+    "Free-form speech may get ahead of deterministic board updates; typed appendText is context only"
+  ],
+  "excludedFromRepository": [
+    "recordings",
+    "transcripts",
+    "raw SDP",
+    "session IDs",
+    "tokens",
+    "runtime logs"
+  ]
+}
